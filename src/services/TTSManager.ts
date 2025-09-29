@@ -1,0 +1,3 @@
+class TTSManager {
+    // TTSManager implementation
+}
