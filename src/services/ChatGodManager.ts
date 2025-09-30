@@ -1,11 +1,13 @@
 // src/services/ChatGodManager.ts
 
-class ChatGod {
+export class ChatGod {
     latestMessage: string;
     keyWord: string;
     currentChatter: string;
     chatPool: string[] = [];
     ttsManager: TTSManager
+    // Callback array allowing for custom functionality, different games, etc
+    callbacks: Array<(msg: string) => void> = [];
 
     constructor(keyWord: string) {
         this.latestMessage = "Added a new chat god";
@@ -14,11 +16,11 @@ class ChatGod {
         this.ttsManager = new TTSManager();
     }
 
-    setCurrentChatter(chatter: string) {
+    setCurrentChatter = (chatter: string) => {
         this.currentChatter = chatter;
     }
 
-    getNextChatter(): string {
+    getNextChatter = (): string => {
         if (this.chatPool.length === 0) {
             console.warn("Chat pool is empty, staying with current chatter");
             return this.currentChatter;
@@ -26,12 +28,24 @@ class ChatGod {
         return this.chatPool.pop() || this.currentChatter;
     }
 
-    addChatterToPool(chatter: string) {
+    addChatterToPool = (chatter: string) => {
         this.chatPool.push(chatter);
     }
 
-    speak() {
-        
+    // Add a list of functions for this chat god to run wheenever they speak
+    addCallback = (callback: (msg: string) => void) => {
+        this.callbacks.push(callback);
+    }
+
+    // Handle this chat god speaking a message
+    speak = (msg: string) => {
+        this.latestMessage = msg;
+        this.callbacks.forEach((callback) => {
+            callback(msg);
+        })
+        if (this.ttsManager) {
+            this.ttsManager.emitMessage(msg);
+        };
     }
 }
 
