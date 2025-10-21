@@ -1,11 +1,37 @@
 // Manager for websocket communication
 
-import { Socket } from "socket.io"
+import { Server } from "socket.io"
+import { ChatGod } from "./ChatGodManager";
+import OBSWebSocket from "obs-websocket-js";
 
 export class WSManager {
-    io: Socket
+    frontendIO: Server;
+    obsIO: OBSWebSocket;;
 
     constructor() {
-        this.io = io()
+        this.frontendIO = new Server(3001, {
+            cors: {
+                origin: "*",
+                methods: ["GET", "POST"]
+            }
+        })
+
+        this.obsIO = new OBSWebSocket();
+    }
+
+    private setupFrontendListeners = () => {
+        this.frontendIO.on('connection', (socket) => {
+            console.log('Frontend client connected');
+
+            socket.on('')
+        })
+    }
+
+    connectToOBS = async () => {
+        await this.obsIO.connect('ws://localhost:4455','obspassword');
+    }
+
+    emitChatGods = (chatGods: ChatGod[]) => {
+        this.frontendIO.emit("chatgod-update", chatGods)
     }
 }

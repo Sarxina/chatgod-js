@@ -1,22 +1,102 @@
 // src/services/ChatGodManager.ts
 
-export class ChatGod {
-    latestMessage: string;
+import { AzureStyle, AzureVoice, TTSManager } from "./TTSManager";
+import { WSManager } from "./WSManager";
+
+// Decorator for method where we want to trigger an update to the frontend
+function updateGodState(originalMethod: any, _context: any) {
+    function wrappedMethod(this: any, ...args: any[]) {
+        const result = originalMethod.call(this, ...args);
+        this.onStateChange();
+        return result;
+    }
+    return wrappedMethod;
+}
+
+class ChatGodBase {
     keyWord: string;
     currentChatter: string;
     chatPool: string[] = [];
-    ttsManager: TTSManager
-    // Callback array allowing for custom functionality, different games, etc
-    callbacks: Array<(msg: string) => void> = [];
+    protected onStateChange: () => void;
 
-    constructor(keyWord: string) {
-        this.latestMessage = "Added a new chat god";
+    constructor(keyWord:string, onStateChange: () => void) {
         this.keyWord = keyWord;
-        this.currentChatter = "No current chatter";
-        this.ttsManager = new TTSManager();
+        this.currentChatter = "NoCurrentChatter";
+        this.onStateChange = onStateChange;
     }
 
-    setCurrentChatter = (chatter: string) => {
+    // Perform before all speech
+    beforeSpeech = async (msg: string) => {
+    }
+
+    // Perform after all speech
+    afterSpeech = async (msg: string) => {
+
+    }
+
+    // Perform after all speech
+    performSpeech = async (msg: string) => {
+
+    }
+
+    speak = async (msg: string) => {
+        await this.beforeSpeech(msg);
+        await this.performSpeech(msg);
+        await this.afterSpeech(msg);
+    }
+}
+
+export class ChatGod extends ChatGodBase {
+    latestMessage: string;
+    ttsManager: TTSManager;
+    isSpeaking: boolean;
+
+    // TTS Variables
+    ttsVoice: AzureVoice;
+    ttsStyle: AzureStyle;
+
+    constructor(keyWord: string, onStateChange: () => void) {
+        super(keyWord, onStateChange);
+        this.isSpeaking = false;
+        this.latestMessage = "Added a new chat god";
+
+        // TTS settings
+        this.ttsManager = new TTSManager();
+        this.ttsVoice = this.ttsManager.voice;
+        this.ttsStyle = this.ttsManager.style;
+    }
+
+    // Updates the message
+    @updateGodState
+    setLatestMessage = (msg: string) => {
+        this.latestMessage = msg;
+    }
+
+    // Changes whether the audio is currently playing for this chatgod
+    // Useful for the upstream animations
+    @updateGodState
+    toggleSpeakingState = (state: boolean) => {
+        this.isSpeaking = state;
+    }
+
+    // Updates the TTS voice settings
+    @updateGodState
+    setTTSSettings = (voice: AzureVoice, style: AzureStyle) => {
+        this.ttsStyle = style;
+        this.ttsVoice = voice;
+        this.ttsManager.setStyle(style);
+        this.ttsManager.setVoice(voice);
+    }
+
+    emitTTSMessage = async (msg: string) => {
+        if (this.ttsManager) {
+            this.toggleSpeakingState(true)
+            await this.ttsManager.emitMessage(msg);
+            this.toggleSpeakingState(false);
+        }
+    }
+
+    setCurrentChatter = async (chatter: string) => {
         this.currentChatter = chatter;
     }
 
@@ -32,27 +112,22 @@ export class ChatGod {
         this.chatPool.push(chatter);
     }
 
-    // Add a list of functions for this chat god to run wheenever they speak
-    addCallback = (callback: (msg: string) => void) => {
-        this.callbacks.push(callback);
+    // Speech process goes below here
+    beforeSpeech = async (msg: string) => {
+        this.setLatestMessage(msg);
     }
 
-    // Handle this chat god speaking a message
-    speak = (msg: string) => {
-        this.latestMessage = msg;
-        this.callbacks.forEach((callback) => {
-            callback(msg);
-        })
-        if (this.ttsManager) {
-            this.ttsManager.emitMessage(msg);
-        };
+    performSpeech = async (msg: string) => {
+        this.emitTTSMessage(msg);
     }
 }
 
-class ChatGodManager {
+export class ChatGodManager {
 
     private chatGods: ChatGod[] = [];
     keyword: string = "!joingod";
+    wsManager: WSManager = new WSManager();
+    watchThis: string = "watch this string for changes";
 
     // Creates a keyword based on index
     getKeyword = (idx: number) => `!joingod${idx}`;
@@ -62,6 +137,10 @@ class ChatGodManager {
         return this.chatGods.find(god => god.keyWord === keyword);
     }
 
+    // Updates the chat gods to the frontend
+    emitChatGods = () => {
+        this.wsManager.emitChatGods(this.chatGods);
+    }
     // Processes an incoming message
     processMessage(message: string, chatter: string) {
 
@@ -82,8 +161,7 @@ class ChatGodManager {
         // Attempt to send a current chatter
         for (const god of this.chatGods) {
             if (god.currentChatter === chatter) {
-                god.latestMessage = message;
-                console.log(`Updated ${god.keyWord} latest message to: ${message}`);
+                god.speak(message);
                 return;
             }
         }
@@ -91,9 +169,9 @@ class ChatGodManager {
     }
     constructor() {
         this.chatGods = [
-            new ChatGod(this.getKeyword(1)),
-            new ChatGod(this.getKeyword(2)),
-            new ChatGod(this.getKeyword(3)),
+            new ChatGod(this.getKeyword(1), this.emitChatGods),
+            new ChatGod(this.getKeyword(2), this.emitChatGods),
+            new ChatGod(this.getKeyword(3), this.emitChatGods),
         ]
     }
 }
