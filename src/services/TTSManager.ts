@@ -1,32 +1,7 @@
 import * as speechsdk from 'microsoft-cognitiveservices-speech-sdk';
 import Speaker from 'speaker';
 import { PassThrough } from 'stream';
-
-const AZURE_VOICES = [
-    "en-US-DavisNeural",
-    "en-US-TonyNeural",
-    "en-US-JasonNeural",
-    "en-US-GuyNeural",
-    "en-US-JaneNeural",
-    "en-US-NancyNeural",
-    "en-US-JennyNeural",
-    "en-US-AriaNeural",
-] as const;
-
-const AZURE_VOICE_STYLES = [
-    "angry",
-    "cheerful",
-    "excited",
-    "hopeful",
-    "sad",
-    "shouting",
-    "terrified",
-    "unfriendly",
-    "whispering"
-] as const;
-
-export type AzureVoice = typeof AZURE_VOICES[number];
-export type AzureStyle = typeof AZURE_VOICE_STYLES[number];
+import { AzureStyle, AzureVoice } from '../common/types';
 
 export class TTSManager {
     voice: AzureVoice;

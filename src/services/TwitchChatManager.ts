@@ -1,5 +1,4 @@
 import { ChatClient } from "@twurple/chat";
-import { ChatGodManager } from "./ChatGodManager";
 import { StaticAuthProvider } from "@twurple/auth";
 
 export class TwitchChatManager {

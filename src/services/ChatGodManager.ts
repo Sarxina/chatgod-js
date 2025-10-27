@@ -170,9 +170,9 @@ export class ChatGodManager {
         const words = message.split(" ");
         // See if the message starts with the keyword
         // If so, we have an attempt to join
-        if (words[0].startsWith(this.keyword)) {
+        if (words[0]!.startsWith(this.keyword)) {
 
-            const chatGod = this.getChatGodByKeyword(words[0]);
+            const chatGod = this.getChatGodByKeyword(words[0]!);
             if (chatGod) {
                 chatGod.addChatterToPool(chatter);
                 console.log(`${chatter} added to ${chatGod.keyWord} pool`);
