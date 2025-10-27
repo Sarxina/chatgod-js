@@ -1,6 +1,7 @@
 // src/services/ChatGodManager.ts
 
 import { AzureStyle, AzureVoice, TTSManager } from "./TTSManager";
+import { TwitchChatManager } from "./TwitchChatManager";
 import { WSManager } from "./WSManager";
 
 // Decorator for method where we want to trigger an update to the frontend
@@ -122,11 +123,32 @@ export class ChatGod extends ChatGodBase {
     }
 }
 
+// Decorator for a function that is triggered by a frontend command
+function updateFromFrontend(wsSubject: string) {
+    return function decorator<
+        This extends ChatGodManager,
+        Args extends any[],
+        Return
+    >(
+        originalMethod: (this: This, ...args: Args) => Return,
+        _context: ClassMethodDecoratorContext<This, (this: This, ...args: Args) => Return>
+    ) {
+        const methodName = _context.name as keyof This;
+
+        _context.addInitializer(function (this: This) {
+            const handler = (this[methodName] as (...args: Args) => Return).bind(this);
+            this.wsManager.frontendIO.on(wsSubject, handler);
+        });
+    }
+}
+
+
 export class ChatGodManager {
 
     private chatGods: ChatGod[] = [];
     keyword: string = "!joingod";
     wsManager: WSManager = new WSManager();
+    twitchChatManager: TwitchChatManager;
     watchThis: string = "watch this string for changes";
 
     // Creates a keyword based on index
@@ -167,12 +189,17 @@ export class ChatGodManager {
         }
 
     }
+
     constructor() {
         this.chatGods = [
             new ChatGod(this.getKeyword(1), this.emitChatGods),
             new ChatGod(this.getKeyword(2), this.emitChatGods),
             new ChatGod(this.getKeyword(3), this.emitChatGods),
         ]
+
+        this.twitchChatManager = new TwitchChatManager(this.processMessage);
+
+        console.log('Chat God Manager is now running')
     }
 }
 

@@ -1,3 +1,4 @@
+'use client'
 import { useChatGods } from "@/lib/clientState";
 import { ChatGodsDisplay } from "./components/ChatGodsDisplay";
 

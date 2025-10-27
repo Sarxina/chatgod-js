@@ -6,7 +6,7 @@ import OBSWebSocket from "obs-websocket-js";
 
 export class WSManager {
     frontendIO: Server;
-    obsIO: OBSWebSocket;;
+    obsIO: OBSWebSocket;
 
     constructor() {
         this.frontendIO = new Server(3001, {
@@ -17,14 +17,6 @@ export class WSManager {
         })
 
         this.obsIO = new OBSWebSocket();
-    }
-
-    private setupFrontendListeners = () => {
-        this.frontendIO.on('connection', (socket) => {
-            console.log('Frontend client connected');
-
-            socket.on('')
-        })
     }
 
     connectToOBS = async () => {

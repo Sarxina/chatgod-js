@@ -3,15 +3,14 @@ import { ChatGodManager } from "./ChatGodManager";
 import { StaticAuthProvider } from "@twurple/auth";
 
 export class TwitchChatManager {
-    private chatGodManager: ChatGodManager
     private chatClient!: ChatClient
 
-    constructor(chatGodManager: ChatGodManager) {
-        this.chatGodManager = chatGodManager;
-        this.setupTwitchConnection();
+    // msgCallbalk is the function you want called when a message is sent
+    constructor(msgCallback: (message: string, chatter: string) => void) {
+        this.setupTwitchConnection(msgCallback);
     }
 
-    private setupTwitchConnection = async () => {
+    private setupTwitchConnection = async (msgCallback: (message: string, chatter: string) => void) => {
 
         const authProvider = new StaticAuthProvider(
             process.env.TWITCH_CLIENT_ID!,
@@ -24,7 +23,7 @@ export class TwitchChatManager {
         });
 
         this.chatClient.onMessage((channel, user, message) => {
-            this.chatGodManager.processMessage(message, user);
+            msgCallback(message, user);
         })
 
         this.chatClient.connect();
