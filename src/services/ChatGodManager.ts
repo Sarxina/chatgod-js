@@ -1,17 +1,22 @@
 // src/services/ChatGodManager.ts
 
-import { AzureStyle, AzureVoice, TTSManager } from "./TTSManager";
+import type { AzureStyle, AzureVoice } from "../common/types";
+import { TTSManager } from "./TTSManager";
 import { TwitchChatManager } from "./TwitchChatManager";
 import { WSManager } from "./WSManager";
 
 // Decorator for method where we want to trigger an update to the frontend
-function updateGodState(originalMethod: any, _context: any) {
-    function wrappedMethod(this: any, ...args: any[]) {
-        const result = originalMethod.call(this, ...args);
+function updateGodState(target: any, propertyKey: any, descriptor: PropertyDescriptor) {
+
+    // Get the original function
+    const original = descriptor.value;
+
+    descriptor.value = function (this: ChatGodBase, ...args: any[]) {
+        const result = original.apply(this, args);
         this.onStateChange();
         return result;
     }
-    return wrappedMethod;
+    return descriptor;
 }
 
 class ChatGodBase {
@@ -53,7 +58,7 @@ export class ChatGod extends ChatGodBase {
     isSpeaking: boolean;
 
     // TTS Variables
-    ttsVoice: AzureVoice;
+    ttsVoice: AzureVoice
     ttsStyle: AzureStyle;
 
     constructor(keyWord: string, onStateChange: () => void) {
@@ -69,20 +74,20 @@ export class ChatGod extends ChatGodBase {
 
     // Updates the message
     @updateGodState
-    setLatestMessage = (msg: string) => {
+    setLatestMessage (msg: string) {
         this.latestMessage = msg;
     }
 
     // Changes whether the audio is currently playing for this chatgod
     // Useful for the upstream animations
     @updateGodState
-    toggleSpeakingState = (state: boolean) => {
+    toggleSpeakingState (state: boolean) {
         this.isSpeaking = state;
     }
 
     // Updates the TTS voice settings
     @updateGodState
-    setTTSSettings = (voice: AzureVoice, style: AzureStyle) => {
+    setTTSSettings (voice: AzureVoice, style: AzureStyle) {
         this.ttsStyle = style;
         this.ttsVoice = voice;
         this.ttsManager.setStyle(style);
@@ -166,6 +171,7 @@ export class ChatGodManager {
     // Processes an incoming message
     processMessage(message: string, chatter: string) {
 
+        console.log(`Recieved message from ${chatter}: ${message}`)
         // First, see if the message is attempting to join a ChatGod
         const words = message.split(" ");
         // See if the message starts with the keyword
@@ -191,16 +197,15 @@ export class ChatGodManager {
     }
 
     constructor() {
+        console.log("Attempting to start Chat God Manager")
         this.chatGods = [
             new ChatGod(this.getKeyword(1), this.emitChatGods),
             new ChatGod(this.getKeyword(2), this.emitChatGods),
             new ChatGod(this.getKeyword(3), this.emitChatGods),
         ]
 
-        this.twitchChatManager = new TwitchChatManager(this.processMessage);
+        this.twitchChatManager = new TwitchChatManager(this.processMessage.bind(this));
 
         console.log('Chat God Manager is now running')
     }
 }
-
-export const chatGodManager = new ChatGodManager();

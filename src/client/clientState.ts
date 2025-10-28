@@ -32,14 +32,10 @@ export const onChatGodUpdate = (socket: Socket, callback: (data: any) => void) =
 }
 
 export const useChatGods = () => {
-    console.log("Running useChatGods")
     const [chatGods, setChatGods] = useState<ChatGodProps[]>([]);
     const [socket, setSocket] = useState<Socket | null>(null);
 
     useEffect(() => {
-
-        console.log('Attempting Initialization')
-        fetch('/api/chatgods')
         const newSocket = io();
         setSocket(newSocket);
 
