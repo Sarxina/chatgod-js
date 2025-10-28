@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { Socket, io } from "socket.io-client"
 import { ChatGod } from "../services/ChatGodManager.js";
-import { ChatGodProps } from "./src/components/ChatGod.js";
+import type { ChatGodProps } from "../common/types.js";
 
 // Transforms Chat God objects into react props
 const chatGodToProps = (chatGodData: ChatGod[]) => {
@@ -25,10 +25,20 @@ const chatGodToProps = (chatGodData: ChatGod[]) => {
 
 // Given a socket and a callback, runs the callback any time the backend
 // calls chatgod-update
-export const onChatGodUpdate = (socket: Socket, callback: (data: any) => void) => {
+export const onChatGodUpdate = (socket: Socket<any, any> | null, callback: (data: any) => void) => {
     socket.on('chatgod-update', (chatGodData: ChatGod[]) => {
         callback(chatGodData);
     })
+}
+
+// Ping the backend to update the frontend
+const getChatGods = (socket: Socket<any, any> | null) => {
+    socket!.emit("get-chatgods");
+}
+
+const openSocket = (setSocket:React.Dispatch<React.SetStateAction<Socket<any, any> | null>>) => {
+    const newSocket = io();
+    setSocket(newSocket);
 }
 
 export const useChatGods = () => {
@@ -36,14 +46,14 @@ export const useChatGods = () => {
     const [socket, setSocket] = useState<Socket | null>(null);
 
     useEffect(() => {
-        const newSocket = io();
-        setSocket(newSocket);
-
-        onChatGodUpdate(newSocket, (data) => {
-            const props: ChatGodProps[] = chatGodToProps(data);
+        openSocket(setSocket)
+        onChatGodUpdate(socket, (data) => {
+            const props: ChatGodProps[] = data;
             setChatGods(props);
         })
-    }, []);
 
-    return chatGods
+    }, []);
+    openSocket(setSocket)
+    getChatGods(socket)
+    return chatGods;
 }

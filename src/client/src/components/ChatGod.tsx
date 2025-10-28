@@ -1,14 +1,6 @@
 'use client';
 
-import type { AzureVoice, AzureStyle } from "../../../common/types.js";
-
-export interface ChatGodProps {
-    latestMessage: string;
-    keyWord: string;
-    currentChatter: string;
-    ttsVoice: AzureVoice;
-    ttsStyle: AzureStyle;
-}
+import type { ChatGodProps } from "../../../common/types.js";
 
 // Containts the component for a single Chat God
 export const ChatGod = ({latestMessage, keyWord, currentChatter}: ChatGodProps) => {

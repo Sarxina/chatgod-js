@@ -1,3 +1,11 @@
+export interface ChatGodProps {
+    latestMessage: string;
+    keyWord: string;
+    currentChatter: string;
+    ttsVoice: AzureVoice;
+    ttsStyle: AzureStyle;
+}
+
 export const AZURE_VOICES = [
     "en-US-DavisNeural",
     "en-US-TonyNeural",
@@ -20,6 +28,7 @@ export const AZURE_VOICE_STYLES = [
     "unfriendly",
     "whispering"
 ] as const;
+
 
 export type AzureVoice = typeof AZURE_VOICES[number];
 export type AzureStyle = typeof AZURE_VOICE_STYLES[number];

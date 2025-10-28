@@ -72,6 +72,17 @@ export class ChatGod extends ChatGodBase {
         this.ttsStyle = this.ttsManager.style;
     }
 
+    // Format the ChatGod in a way usable on the frontend
+    serialize () {
+        return {
+            keyWord: this.keyWord,
+            currentChatter: this.currentChatter,
+            latestMessage: this.latestMessage,
+            ttsVoice: this.ttsVoice,
+            ttsStyle: this.ttsStyle
+        }
+    }
+
     // Updates the message
     @updateGodState
     setLatestMessage (msg: string) {
@@ -128,31 +139,24 @@ export class ChatGod extends ChatGodBase {
     }
 }
 
-// Decorator for a function that is triggered by a frontend command
-function updateFromFrontend(wsSubject: string) {
-    return function decorator<
-        This extends ChatGodManager,
-        Args extends any[],
-        Return
-    >(
-        originalMethod: (this: This, ...args: Args) => Return,
-        _context: ClassMethodDecoratorContext<This, (this: This, ...args: Args) => Return>
-    ) {
-        const methodName = _context.name as keyof This;
 
-        _context.addInitializer(function (this: This) {
-            const handler = (this[methodName] as (...args: Args) => Return).bind(this);
-            this.wsManager.frontendIO.on(wsSubject, handler);
-        });
+function updateFromFrontend(wsSubject: string) {
+    return function decorator(target: any, methodName: any) {
+
+        // Create the array of frontend bindings if they aren't yet created
+        if (!target.__frontendBindings) target.__frontendBindings = [];
+
+        target.__frontendBindings.push({wsSubject, methodName});
     }
 }
 
 
 export class ChatGodManager {
 
+    static ChatGodClass: typeof ChatGod = ChatGod;
     private chatGods: ChatGod[] = [];
     keyword: string = "!joingod";
-    wsManager: WSManager = new WSManager();
+    wsManager: WSManager;
     twitchChatManager: TwitchChatManager;
     watchThis: string = "watch this string for changes";
 
@@ -166,7 +170,12 @@ export class ChatGodManager {
 
     // Updates the chat gods to the frontend
     emitChatGods = () => {
-        this.wsManager.emitChatGods(this.chatGods);
+        this.wsManager.emitChatGods(this.chatGods.map(g => g.serialize()));
+    }
+
+    @updateFromFrontend('get-chatgods')
+    respondChatGods = (data: any) => {
+        this.emitChatGods();
     }
     // Processes an incoming message
     processMessage(message: string, chatter: string) {
@@ -198,14 +207,26 @@ export class ChatGodManager {
 
     constructor() {
         console.log("Attempting to start Chat God Manager")
+
+        const GodType = ChatGodManager.ChatGodClass;
+
         this.chatGods = [
-            new ChatGod(this.getKeyword(1), this.emitChatGods),
-            new ChatGod(this.getKeyword(2), this.emitChatGods),
-            new ChatGod(this.getKeyword(3), this.emitChatGods),
+            new GodType(this.getKeyword(1), this.emitChatGods),
+            new GodType(this.getKeyword(2), this.emitChatGods),
+            new GodType(this.getKeyword(3), this.emitChatGods),
         ]
 
         this.twitchChatManager = new TwitchChatManager(this.processMessage.bind(this));
+        this.wsManager = new WSManager();
+        // Register all of the subjects that communicate with the frontend
+        const bindings = (this as any).__proto__.__frontendBindings;
+        if (bindings) {
+            for (const {eventName, methodName} of bindings) {
+                this.wsManager.frontendIO.on(eventName, (this as any)[methodName].bind(this));
+            }
+        }
 
         console.log('Chat God Manager is now running')
+        this.emitChatGods();
     }
 }
