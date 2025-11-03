@@ -4,20 +4,34 @@ import { Server } from "socket.io"
 import { ChatGod } from "./ChatGodManager";
 import OBSWebSocket from "obs-websocket-js";
 import type { ChatGodProps } from "../common/types";
+import http from "http";
 
 export class WSManager {
     frontendIO: Server;
     obsIO: OBSWebSocket;
 
-    constructor() {
-        this.frontendIO = new Server(5173, {
+    constructor(server: http.Server | null = null) {
+
+        // Either use the backend server as the websocket, or use a new port
+        this.frontendIO = new Server(server || Number(process.env.BACKEND_PORT), {
             cors: {
                 origin: "*",
                 methods: ["GET", "POST"]
             }
         })
 
+        this.frontendIO.on('connection', (socket) => {
+            console.log('Client connected', socket.id);
+        })
+
         this.obsIO = new OBSWebSocket();
+    }
+
+    // Registers a function to be called on a subject from the frontend
+    registerFrontendListener = (wsSubject: string, handler: (...args: any[]) => void) => {
+        this.frontendIO.on('connection', (socket) => {
+            socket.on(wsSubject, handler);
+        })
     }
 
     connectToOBS = async () => {
@@ -25,6 +39,7 @@ export class WSManager {
     }
 
     emitChatGods = (chatGods: ChatGodProps[]) => {
+        console.log("Emitting to frontend")
         this.frontendIO.emit("chatgod-update", chatGods)
     }
 }

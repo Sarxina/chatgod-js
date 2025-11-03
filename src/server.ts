@@ -4,7 +4,6 @@ import path from "path";
 import { ChatGodManager } from "./services/ChatGodManager";
 import "dotenv/config";
 
-
 const app = express()
 const server = http.createServer(app);
 console.log("Starting server")
@@ -12,10 +11,9 @@ console.log("Starting server")
 app.use(express.static(path.join(__dirname, "src/client/dist")));
 
 // Backend process start
-const chatGodManager = new ChatGodManager();
+const BACKEND_PORT = Number(process.env.BACKEND_PORT) || 3333;
+const chatGodManager = new ChatGodManager(server);
 
-const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-    console.log(`✅ Server running at http://localhost:${PORT}`);
+server.listen(BACKEND_PORT, () => {
+    console.log(`✅ Server running at http://localhost:${BACKEND_PORT}`);
 });

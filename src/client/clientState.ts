@@ -25,35 +25,45 @@ const chatGodToProps = (chatGodData: ChatGod[]) => {
 
 // Given a socket and a callback, runs the callback any time the backend
 // calls chatgod-update
-export const onChatGodUpdate = (socket: Socket<any, any> | null, callback: (data: any) => void) => {
+export const onChatGodUpdate = (socket: Socket<any, any>, callback: (data: any) => void) => {
     socket.on('chatgod-update', (chatGodData: ChatGod[]) => {
         callback(chatGodData);
     })
 }
 
-// Ping the backend to update the frontend
-const getChatGods = (socket: Socket<any, any> | null) => {
-    socket!.emit("get-chatgods");
-}
-
-const openSocket = (setSocket:React.Dispatch<React.SetStateAction<Socket<any, any> | null>>) => {
-    const newSocket = io();
-    setSocket(newSocket);
-}
 
 export const useChatGods = () => {
     const [chatGods, setChatGods] = useState<ChatGodProps[]>([]);
     const [socket, setSocket] = useState<Socket | null>(null);
 
     useEffect(() => {
-        openSocket(setSocket)
-        onChatGodUpdate(socket, (data) => {
-            const props: ChatGodProps[] = data;
-            setChatGods(props);
+        const newSocket = io(`http://localhost:3333`);
+        setSocket(newSocket);
+
+        return () => {
+            newSocket.close();
+        };
+    }, []);
+
+    useEffect(() => {
+        console.log("Entering the effect")
+        if (!socket) return;
+
+        socket.on('connect', () => {
+            console.log("Socket connecting, emitting get-chatgods");
+            socket.emit('get-chatgods')
         })
 
-    }, []);
-    openSocket(setSocket)
-    getChatGods(socket)
+
+        socket.on('chatgod-update', (chatGodData: ChatGodProps[]) => {
+            setChatGods(chatGodData);
+        });
+
+        return () => {
+            socket.off('connect');
+            socket.off("chatgod-update");
+        }
+    }, [socket]);
+
     return chatGods;
 }

@@ -4,6 +4,8 @@ import type { AzureStyle, AzureVoice } from "../common/types";
 import { TTSManager } from "./TTSManager";
 import { TwitchChatManager } from "./TwitchChatManager";
 import { WSManager } from "./WSManager";
+import http from "http";
+
 
 // Decorator for method where we want to trigger an update to the frontend
 function updateGodState(target: any, propertyKey: any, descriptor: PropertyDescriptor) {
@@ -175,6 +177,7 @@ export class ChatGodManager {
 
     @updateFromFrontend('get-chatgods')
     respondChatGods = (data: any) => {
+        console.log("triggered get")
         this.emitChatGods();
     }
     // Processes an incoming message
@@ -205,7 +208,7 @@ export class ChatGodManager {
 
     }
 
-    constructor() {
+    constructor(server: http.Server | null = null) {
         console.log("Attempting to start Chat God Manager")
 
         const GodType = ChatGodManager.ChatGodClass;
@@ -217,12 +220,13 @@ export class ChatGodManager {
         ]
 
         this.twitchChatManager = new TwitchChatManager(this.processMessage.bind(this));
-        this.wsManager = new WSManager();
+        this.wsManager = new WSManager(server);
         // Register all of the subjects that communicate with the frontend
         const bindings = (this as any).__proto__.__frontendBindings;
+        console.log(bindings)
         if (bindings) {
-            for (const {eventName, methodName} of bindings) {
-                this.wsManager.frontendIO.on(eventName, (this as any)[methodName].bind(this));
+            for (const {wsSubject, methodName} of bindings) {
+                this.wsManager.registerFrontendListener(wsSubject, (this as any)[methodName].bind(this));
             }
         }
 
