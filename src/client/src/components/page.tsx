@@ -4,10 +4,14 @@ import { useChatGods } from "../../clientState.js";
 import { ChatGodsDisplay } from "./ChatGodsDisplay.js";
 
 export default function Home() {
-  const chatGods = useChatGods()
+  const [chatGods, updateChatGod] = useChatGods()
+  console.log("Checking if this is working")
   return (
     <div>
-      <ChatGodsDisplay chatGods={chatGods}/>
+      <ChatGodsDisplay 
+        chatGods={chatGods}
+        onUpdate={updateChatGod}
+      />
     </div>
   );
 }

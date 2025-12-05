@@ -8,7 +8,7 @@ const app = express()
 const server = http.createServer(app);
 console.log("Starting server")
 // Server React Built
-app.use(express.static(path.join(__dirname, "src/client/dist")));
+app.use(express.static(path.join(__dirname, "../src/client/dist")));
 
 // Backend process start
 const BACKEND_PORT = Number(process.env.BACKEND_PORT) || 3333;

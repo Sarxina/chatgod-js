@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev-client": "cd src/client && npm install && npm run dev",
+    "install-all": "npm install --verbose && cd src/client && npm install --verbose && cd ../..",
+    "dev-client": "cd src/client && npm run build -- --watch",
     "dev-server": "nodemon --exec ts-node src/server.ts",
-    "dev": "concurrently \"npm run dev-client\" \"npm run dev-server\""
+    "dev": "npm run install-all && concurrently \"npm run dev-client\" \"npm run dev-server\""
   },
   "repository": {
     "type": "git",

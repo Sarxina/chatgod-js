@@ -8,7 +8,7 @@ import http from "http";
 
 
 // Decorator for method where we want to trigger an update to the frontend
-function updateGodState(target: any, propertyKey: any, descriptor: PropertyDescriptor) {
+function updateGodState(_target: any, _propertyKey: any, descriptor: PropertyDescriptor) {
 
     // Get the original function
     const original = descriptor.value;
@@ -34,16 +34,16 @@ class ChatGodBase {
     }
 
     // Perform before all speech
-    beforeSpeech = async (msg: string) => {
+    beforeSpeech = async (_msg: string) => {
     }
 
     // Perform after all speech
-    afterSpeech = async (msg: string) => {
+    afterSpeech = async (_msg: string) => {
 
     }
 
     // Perform after all speech
-    performSpeech = async (msg: string) => {
+    performSpeech = async (_msg: string) => {
 
     }
 
@@ -87,20 +87,20 @@ export class ChatGod extends ChatGodBase {
 
     // Updates the message
     @updateGodState
-    setLatestMessage (msg: string) {
+    setLatestMessage(msg: string) {
         this.latestMessage = msg;
     }
 
     // Changes whether the audio is currently playing for this chatgod
     // Useful for the upstream animations
     @updateGodState
-    toggleSpeakingState (state: boolean) {
+    toggleSpeakingState(state: boolean) {
         this.isSpeaking = state;
     }
 
     // Updates the TTS voice settings
     @updateGodState
-    setTTSSettings (voice: AzureVoice, style: AzureStyle) {
+    setTTSSettings(voice: AzureVoice, style: AzureStyle) {
         this.ttsStyle = style;
         this.ttsVoice = voice;
         this.ttsManager.setStyle(style);
@@ -180,6 +180,14 @@ export class ChatGodManager {
         console.log("triggered get")
         this.emitChatGods();
     }
+
+    @updateFromFrontend('set-chatter')
+    setChatter = (data: any) => {
+        console.log("Triggering setting the chatter")
+        const chatGod = this.getChatGodByKeyword(data.keyWord);
+        console.log(`Previously this chatter was ${chatGod?.currentChatter}}`)
+        chatGod?.setCurrentChatter(data.chatter);
+    }
     // Processes an incoming message
     processMessage(message: string, chatter: string) {
 
@@ -201,6 +209,7 @@ export class ChatGodManager {
         // Attempt to send a current chatter
         for (const god of this.chatGods) {
             if (god.currentChatter === chatter) {
+                console.log("Found a chat god")
                 god.speak(message);
                 return;
             }

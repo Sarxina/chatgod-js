@@ -7,7 +7,7 @@ import { ChatGod } from "../services/ChatGodManager.js";
 import type { ChatGodProps } from "../common/types.js";
 
 // Transforms Chat God objects into react props
-const chatGodToProps = (chatGodData: ChatGod[]) => {
+export const chatGodToProps = (chatGodData: ChatGod[]): ChatGodProps[] => {
     const chatGodProps = [];
 
     for (const god of chatGodData) {
@@ -31,8 +31,11 @@ export const onChatGodUpdate = (socket: Socket<any, any>, callback: (data: any) 
     })
 }
 
+const updateChatter = (keyWord: string, chatter: string, socket: Socket<any, any>) => {
+    socket.emit('set-chatter', {chatter, keyWord});
+}
 
-export const useChatGods = () => {
+export const useChatGods = (): [ChatGodProps[], (keyWord: string, field: string, value: any) => void] => {
     const [chatGods, setChatGods] = useState<ChatGodProps[]>([]);
     const [socket, setSocket] = useState<Socket | null>(null);
 
@@ -54,7 +57,6 @@ export const useChatGods = () => {
             socket.emit('get-chatgods')
         })
 
-
         socket.on('chatgod-update', (chatGodData: ChatGodProps[]) => {
             setChatGods(chatGodData);
         });
@@ -65,5 +67,21 @@ export const useChatGods = () => {
         }
     }, [socket]);
 
-    return chatGods;
+    const updateChatGod = (keyWord: string, field: string, value: any) => {
+
+        setChatGods(prev => prev.map(god =>
+            god.keyWord === keyWord
+            ? {...god, [field]: value}
+            : god
+        ));
+
+        if (!socket) return;
+        switch (field) {
+            case 'currentChatter':
+                updateChatter(keyWord, value, socket);
+                break;
+        }
+    }
+
+    return [chatGods, updateChatGod];
 }
