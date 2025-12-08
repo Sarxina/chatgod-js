@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { Socket, io } from "socket.io-client"
 import { ChatGod } from "../services/ChatGodManager.js";
-import type { ChatGodProps } from "../common/types.js";
+import type { AzureStyle, AzureVoice, ChatGodProps } from "../common/types.js";
 
 // Transforms Chat God objects into react props
 export const chatGodToProps = (chatGodData: ChatGod[]): ChatGodProps[] => {
@@ -16,7 +16,8 @@ export const chatGodToProps = (chatGodData: ChatGod[]): ChatGodProps[] => {
             currentChatter: god.currentChatter,
             latestMessage: god.latestMessage,
             ttsVoice: god.ttsVoice,
-            ttsStyle: god.ttsStyle
+            ttsStyle: god.ttsStyle,
+            isSpeaking: god.isSpeaking
         }
         chatGodProps.push(prop);
     };
@@ -35,6 +36,14 @@ const updateChatter = (keyWord: string, chatter: string, socket: Socket<any, any
     socket.emit('set-chatter', {chatter, keyWord});
 }
 
+const updateVoiceSpeaker = (keyWord: string, voice: AzureVoice, socket: Socket)  => {
+    socket.emit('set-voice-speaker', {voice,  keyWord});
+}
+
+const updateVoiceStyle = (keyWord: string, style: AzureStyle, socket: Socket) => {
+    socket.emit('set-voice-style', {style, keyWord});
+}
+
 export const useChatGods = (): [ChatGodProps[], (keyWord: string, field: string, value: any) => void] => {
     const [chatGods, setChatGods] = useState<ChatGodProps[]>([]);
     const [socket, setSocket] = useState<Socket | null>(null);
@@ -49,11 +58,9 @@ export const useChatGods = (): [ChatGodProps[], (keyWord: string, field: string,
     }, []);
 
     useEffect(() => {
-        console.log("Entering the effect")
         if (!socket) return;
 
         socket.on('connect', () => {
-            console.log("Socket connecting, emitting get-chatgods");
             socket.emit('get-chatgods')
         })
 

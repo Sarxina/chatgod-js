@@ -12,10 +12,10 @@ export const ChatGodsDisplay = ({
     onUpdate: (keyword: string, field: string, value: any) => void
 }) => {
     return (
-        <div className="flex flex-row">
+        <div className="flex flex-row gap-x-20">
             {chatGods.map((chatGod) => (
-                <div key={chatGod.keyWord}>
-                    <ChatGod 
+                <div key={chatGod.keyWord} className="w-120 h-120">
+                    <ChatGod
                     {...chatGod}
                     onUpdate={onUpdate}
                     />

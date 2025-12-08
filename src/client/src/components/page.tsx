@@ -5,10 +5,9 @@ import { ChatGodsDisplay } from "./ChatGodsDisplay.js";
 
 export default function Home() {
   const [chatGods, updateChatGod] = useChatGods()
-  console.log("Checking if this is working")
   return (
     <div>
-      <ChatGodsDisplay 
+      <ChatGodsDisplay
         chatGods={chatGods}
         onUpdate={updateChatGod}
       />

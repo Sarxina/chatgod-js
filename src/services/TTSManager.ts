@@ -1,7 +1,8 @@
 import * as speechsdk from 'microsoft-cognitiveservices-speech-sdk';
 import Speaker from 'speaker';
 import { PassThrough } from 'stream';
-import { AzureStyle, AzureVoice } from '../common/types';
+import { AZURE_VOICE_STYLES, AZURE_VOICES, AzureStyle, AzureVoice } from '../common/types';
+import { start } from 'repl';
 
 export class TTSManager {
     voice: AzureVoice;
@@ -12,8 +13,11 @@ export class TTSManager {
 
     constructor() {
         this.authenticate();
-        this.voice = 'en-US-AriaNeural';
-        this.style = 'cheerful';
+        // Choose random voice and style to start
+        const voiceChoise = Math.floor(Math.random() * AZURE_VOICES.length)
+        const styleChoice = Math.floor(Math.random() * AZURE_VOICE_STYLES.length)
+        this.voice = AZURE_VOICES[voiceChoise] || 'en-US-AriaNeural';
+        this.style = AZURE_VOICE_STYLES[styleChoice] || 'cheerful';
     }
 
     // Authenticates the app through Azure
@@ -88,23 +92,32 @@ export class TTSManager {
     }
 
     // Given a message string, speak it
-    emitMessage = async (msg: string): Promise<void> => {
+    // Takes an optional callback to run when audio is ready and when its done
+    emitMessage = async (
+        msg: string,
+        onAudioReady?: () => void,
+        onAudioComplete?: () => void
+    ): Promise<void> => {
         const ssmlText = this.getSSMLText(msg);
         const audioData = await this.getAudioData(ssmlText);
         if (!audioData) {
             console.error("Failed to synethsize audio data");
             return;
         }
+
+        // Audio is ready, trigger callback
+        onAudioReady?.();
         await this.playAudioData(audioData);
+
+        // Audio is complete, trigger callback
+        onAudioComplete?.();
     }
 
     setVoice = (voice: AzureVoice) => {
-        console.log(`Setting voice to ${voice}`)
         this.voice = voice;
     }
 
     setStyle = (style: AzureStyle) => {
-        console.log(`Setting style to ${style}`)
         this.style = style;
     }
 }

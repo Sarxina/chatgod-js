@@ -22,12 +22,14 @@ function updateGodState(_target: any, _propertyKey: any, descriptor: PropertyDes
 }
 
 class ChatGodBase {
+    image: string;
     keyWord: string;
     currentChatter: string;
     chatPool: string[] = [];
     protected onStateChange: () => void;
 
     constructor(keyWord:string, onStateChange: () => void) {
+        this.image = 'thinkingemoji.png'
         this.keyWord = keyWord;
         this.currentChatter = "NoCurrentChatter";
         this.onStateChange = onStateChange;
@@ -77,11 +79,13 @@ export class ChatGod extends ChatGodBase {
     // Format the ChatGod in a way usable on the frontend
     serialize () {
         return {
+            image: this.image,
             keyWord: this.keyWord,
             currentChatter: this.currentChatter,
             latestMessage: this.latestMessage,
             ttsVoice: this.ttsVoice,
-            ttsStyle: this.ttsStyle
+            ttsStyle: this.ttsStyle,
+            isSpeaking: this.isSpeaking
         }
     }
 
@@ -109,9 +113,18 @@ export class ChatGod extends ChatGodBase {
 
     emitTTSMessage = async (msg: string) => {
         if (this.ttsManager) {
-            this.toggleSpeakingState(true)
-            await this.ttsManager.emitMessage(msg);
-            this.toggleSpeakingState(false);
+            // emit message takes the message, a callback to run when the audio is ready,
+            // and a callback to run when its done
+            // theres not a super clean way to sync animation and audio other than just delaying
+            // the animation for a little bit
+            await this.ttsManager.emitMessage(
+                msg,
+                async () => {
+                    await new Promise(resolve => setTimeout(resolve, 500))
+                    this.toggleSpeakingState(true)
+                },
+                () => this.toggleSpeakingState(false)
+            )
         }
     }
 
@@ -177,21 +190,29 @@ export class ChatGodManager {
 
     @updateFromFrontend('get-chatgods')
     respondChatGods = (data: any) => {
-        console.log("triggered get")
         this.emitChatGods();
     }
 
     @updateFromFrontend('set-chatter')
     setChatter = (data: any) => {
-        console.log("Triggering setting the chatter")
         const chatGod = this.getChatGodByKeyword(data.keyWord);
-        console.log(`Previously this chatter was ${chatGod?.currentChatter}}`)
         chatGod?.setCurrentChatter(data.chatter);
+    }
+
+    @updateFromFrontend('set-voice-speaker')
+    setVoiceSpeaker = (data: any) => {
+        const chatGod = this.getChatGodByKeyword(data.keyWord);
+        chatGod?.setTTSSettings(data.voice, chatGod.ttsStyle);
+    }
+
+    @updateFromFrontend('set-voice-style')
+    setVoiceStyle = (data: any) => {
+        const chatGod = this.getChatGodByKeyword(data.keyWord);
+        chatGod?.setTTSSettings(chatGod.ttsVoice, data.style);
     }
     // Processes an incoming message
     processMessage(message: string, chatter: string) {
 
-        console.log(`Recieved message from ${chatter}: ${message}`)
         // First, see if the message is attempting to join a ChatGod
         const words = message.split(" ");
         // See if the message starts with the keyword
@@ -209,7 +230,6 @@ export class ChatGodManager {
         // Attempt to send a current chatter
         for (const god of this.chatGods) {
             if (god.currentChatter === chatter) {
-                console.log("Found a chat god")
                 god.speak(message);
                 return;
             }

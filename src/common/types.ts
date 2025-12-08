@@ -1,9 +1,11 @@
 export interface ChatGodProps {
+    image: string
     latestMessage: string;
     keyWord: string;
     currentChatter: string;
     ttsVoice: AzureVoice;
     ttsStyle: AzureStyle;
+    isSpeaking: boolean;
 }
 
 export const AZURE_VOICES = [

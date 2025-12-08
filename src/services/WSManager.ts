@@ -6,6 +6,7 @@ import OBSWebSocket from "obs-websocket-js";
 import type { ChatGodProps } from "../common/types";
 import http from "http";
 
+// handles communication with both the frontend and OBS, if needed
 export class WSManager {
     frontendIO: Server;
     obsIO: OBSWebSocket;
@@ -39,7 +40,6 @@ export class WSManager {
     }
 
     emitChatGods = (chatGods: ChatGodProps[]) => {
-        console.log("Emitting to frontend")
         this.frontendIO.emit("chatgod-update", chatGods)
     }
 }
