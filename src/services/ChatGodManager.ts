@@ -1,6 +1,6 @@
 // src/services/ChatGodManager.ts
 
-import type { AzureStyle, AzureVoice } from "../common/types";
+import type { AzureStyle, AzureVoice, ChatGodProps } from "../common/types";
 import { TTSManager } from "./TTSManager";
 import { TwitchChatManager } from "./TwitchChatManager";
 import { WSManager } from "./WSManager";
@@ -169,23 +169,26 @@ function updateFromFrontend(wsSubject: string) {
 export class ChatGodManager {
 
     static ChatGodClass: typeof ChatGod = ChatGod;
-    private chatGods: ChatGod[] = [];
+    chatGods: InstanceType<typeof ChatGodManager.ChatGodClass>[] = [];
     keyword: string = "!joingod";
     wsManager: WSManager;
     twitchChatManager: TwitchChatManager;
-    watchThis: string = "watch this string for changes";
 
     // Creates a keyword based on index
     getKeyword = (idx: number) => `!joingod${idx}`;
 
     // Finds a ChatGod by its keyword
-    getChatGodByKeyword = (keyword: string): ChatGod | undefined => {
+    getChatGodByKeyword = (keyword: string): InstanceType<typeof ChatGodManager.ChatGodClass> | undefined => {
         return this.chatGods.find(god => god.keyWord === keyword);
+    }
+
+    serializeChatGods = (): ChatGodProps[] => {
+        return this.chatGods.map(g => g.serialize());
     }
 
     // Updates the chat gods to the frontend
     emitChatGods = () => {
-        this.wsManager.emitChatGods(this.chatGods.map(g => g.serialize()));
+        this.wsManager.emitChatGods(this.serializeChatGods());
     }
 
     @updateFromFrontend('get-chatgods')
@@ -237,6 +240,22 @@ export class ChatGodManager {
 
     }
 
+    registerAllFrontendListeners = (bindings: any) => {
+        // Register all of the subjects that communicate with the frontend
+        console.log(bindings)
+        if (bindings) {
+            for (const {wsSubject, methodName} of bindings) {
+                this.wsManager.registerFrontendListener(wsSubject, (this as any)[methodName].bind(this));
+            }
+        }
+    }
+
+    // Create the websocket manager
+    // seperate function for easy overriding later 
+    createWSManager = (server: http.Server) => {
+        this.wsManager = new WSManager(server)
+    }
+
     constructor(server: http.Server | null = null) {
         console.log("Attempting to start Chat God Manager")
 
@@ -252,12 +271,7 @@ export class ChatGodManager {
         this.wsManager = new WSManager(server);
         // Register all of the subjects that communicate with the frontend
         const bindings = (this as any).__proto__.__frontendBindings;
-        console.log(bindings)
-        if (bindings) {
-            for (const {wsSubject, methodName} of bindings) {
-                this.wsManager.registerFrontendListener(wsSubject, (this as any)[methodName].bind(this));
-            }
-        }
+        this.registerAllFrontendListeners(bindings);
 
         console.log('Chat God Manager is now running')
         this.emitChatGods();
