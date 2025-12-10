@@ -8,7 +8,7 @@ import http from "http";
 
 
 // Decorator for method where we want to trigger an update to the frontend
-function updateGodState(_target: any, _propertyKey: any, descriptor: PropertyDescriptor) {
+export function updateGodState(_target: any, _propertyKey: any, descriptor: PropertyDescriptor) {
 
     // Get the original function
     const original = descriptor.value;
@@ -155,7 +155,7 @@ export class ChatGod extends ChatGodBase {
 }
 
 
-function updateFromFrontend(wsSubject: string) {
+export function updateFromFrontend(wsSubject: string) {
     return function decorator(target: any, methodName: any) {
 
         // Create the array of frontend bindings if they aren't yet created
@@ -196,6 +196,20 @@ export class ChatGodManager {
         this.emitChatGods();
     }
 
+    // Add a new blank chatgod to the list
+    @updateFromFrontend('new-chatgod')
+    addChatGod = (data: any) => {
+        const GodType = ChatGodManager.ChatGodClass;
+        const newChatGod = new GodType(
+            this.getKeyword(this.chatGods.length + 1),
+            this.emitChatGods
+        );
+        this.chatGods.push(newChatGod);
+
+        this.emitChatGods();
+    }
+
+
     @updateFromFrontend('set-chatter')
     setChatter = (data: any) => {
         const chatGod = this.getChatGodByKeyword(data.keyWord);
@@ -212,6 +226,12 @@ export class ChatGodManager {
     setVoiceStyle = (data: any) => {
         const chatGod = this.getChatGodByKeyword(data.keyWord);
         chatGod?.setTTSSettings(chatGod.ttsVoice, data.style);
+    }
+
+    @updateFromFrontend('delete-chatgod')
+    deleteChatGod = (data: any) => {
+        const idxToRemove = this.chatGods.findIndex(god => god.keyWord === data.keyWord);
+        this.chatGods.splice(idxToRemove, 1);
     }
     // Processes an incoming message
     processMessage(message: string, chatter: string) {
