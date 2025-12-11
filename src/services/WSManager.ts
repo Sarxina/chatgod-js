@@ -21,6 +21,8 @@ export class WSManager {
             }
         })
 
+        this.frontendIO.sockets.setMaxListeners(0);
+
         this.frontendIO.on('connection', (socket) => {
             console.log('Client connected', socket.id);
         })

@@ -29,7 +29,7 @@ class ChatGodBase {
     protected onStateChange: () => void;
 
     constructor(keyWord:string, onStateChange: () => void) {
-        this.image = 'thinkingemoji.png'
+        this.image = 'SkrunklyMouthClosed.png'
         this.keyWord = keyWord;
         this.currentChatter = "NoCurrentChatter";
         this.onStateChange = onStateChange;
@@ -271,9 +271,27 @@ export class ChatGodManager {
     }
 
     // Create the websocket manager
-    // seperate function for easy overriding later 
-    createWSManager = (server: http.Server) => {
+    // seperate function for easy overriding laterßß
+    createWSManager (server: http.Server | null) {
+        console.log("Launching the websocket manager")
         this.wsManager = new WSManager(server)
+    }
+
+    // Prepare all websocket subjets
+    setupWebsockets (server: http.Server | null) {
+        this.createWSManager(server);
+        // Register all of the subjects that communicate with the frontend
+        const bindings = (this as any).__proto__.__frontendBindings;
+        this.registerAllFrontendListeners(bindings);
+    }
+
+    // Setup websockets and send the chat gods
+    initFrontendConnection (server: http.Server | null) {
+        if (server) {
+            this.setupWebsockets(server);
+            this.emitChatGods();
+            console.log('Chat God Manager is now running')
+        }
     }
 
     constructor(server: http.Server | null = null) {
@@ -286,14 +304,7 @@ export class ChatGodManager {
             new GodType(this.getKeyword(2), this.emitChatGods),
             new GodType(this.getKeyword(3), this.emitChatGods),
         ]
-
         this.twitchChatManager = new TwitchChatManager(this.processMessage.bind(this));
-        this.wsManager = new WSManager(server);
-        // Register all of the subjects that communicate with the frontend
-        const bindings = (this as any).__proto__.__frontendBindings;
-        this.registerAllFrontendListeners(bindings);
-
-        console.log('Chat God Manager is now running')
-        this.emitChatGods();
+        this.initFrontendConnection(server);
     }
 }
