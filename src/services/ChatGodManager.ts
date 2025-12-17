@@ -15,6 +15,8 @@ export function updateGodState(_target: any, _propertyKey: any, descriptor: Prop
 
     descriptor.value = function (this: ChatGodBase, ...args: any[]) {
         const result = original.apply(this, args);
+        console.log("Triggering onStateChange")
+        console.log("OnStateChange function:", this.onStateChange)
         this.onStateChange();
         return result;
     }
@@ -65,6 +67,7 @@ export class ChatGod extends ChatGodBase {
     ttsVoice: AzureVoice
     ttsStyle: AzureStyle;
 
+
     constructor(keyWord: string, onStateChange: () => void) {
         super(keyWord, onStateChange);
         this.isSpeaking = false;
@@ -90,7 +93,6 @@ export class ChatGod extends ChatGodBase {
     }
 
     // Updates the message
-    @updateGodState
     setLatestMessage(msg: string) {
         this.latestMessage = msg;
     }
@@ -99,6 +101,7 @@ export class ChatGod extends ChatGodBase {
     // Useful for the upstream animations
     @updateGodState
     toggleSpeakingState(state: boolean) {
+        console.log(`We're updating the speaking state ${state}`)
         this.isSpeaking = state;
     }
 
@@ -166,20 +169,29 @@ export function updateFromFrontend(wsSubject: string) {
 }
 
 
-export class ChatGodManager {
+export abstract class ChatGodManager<GodType extends ChatGod> {
 
     static ChatGodClass: typeof ChatGod = ChatGod;
-    chatGods: InstanceType<typeof ChatGodManager.ChatGodClass>[] = [];
+    chatGods: GodType[] = [];
     keyword: string = "!joingod";
     wsManager: WSManager;
     twitchChatManager: TwitchChatManager;
+
+    managerContext: any; // This is for deriviative games that use a chat god manager
+
+    protected abstract createChatGod(keyword: string): GodType
 
     // Creates a keyword based on index
     getKeyword = (idx: number) => `!joingod${idx}`;
 
     // Finds a ChatGod by its keyword
-    getChatGodByKeyword = (keyword: string): InstanceType<typeof ChatGodManager.ChatGodClass> | undefined => {
+    getChatGodByKeyword = (keyword: string): GodType | undefined => {
         return this.chatGods.find(god => god.keyWord === keyword);
+    }
+
+    // Finds a ChatGod by the chatter
+    getChatGodByChatter = (chatter: string): GodType | undefined => {
+        return this.chatGods.find(god => god.currentChatter === chatter);
     }
 
     serializeChatGods = (): ChatGodProps[] => {
@@ -187,7 +199,7 @@ export class ChatGodManager {
     }
 
     // Updates the chat gods to the frontend
-    emitChatGods = () => {
+    emitChatGods () {
         this.wsManager.emitChatGods(this.serializeChatGods());
     }
 
@@ -199,7 +211,6 @@ export class ChatGodManager {
     // Add a new blank chatgod to the list
     @updateFromFrontend('new-chatgod')
     addChatGod = (data: any) => {
-        const GodType = ChatGodManager.ChatGodClass;
         const newChatGod = new GodType(
             this.getKeyword(this.chatGods.length + 1),
             this.emitChatGods
@@ -233,6 +244,11 @@ export class ChatGodManager {
         const idxToRemove = this.chatGods.findIndex(god => god.keyWord === data.keyWord);
         this.chatGods.splice(idxToRemove, 1);
     }
+
+    speakMessage(chatGod: GodType, message: string) {
+        chatGod.speak(message);
+    };
+
     // Processes an incoming message
     processMessage(message: string, chatter: string) {
 
@@ -251,12 +267,8 @@ export class ChatGodManager {
         }
 
         // Attempt to send a current chatter
-        for (const god of this.chatGods) {
-            if (god.currentChatter === chatter) {
-                god.speak(message);
-                return;
-            }
-        }
+        const chattingGod = this.getChatGodByChatter(chatter);
+        if (chattingGod) this.speakMessage(chattingGod, message);
 
     }
 
@@ -294,17 +306,27 @@ export class ChatGodManager {
         }
     }
 
-    constructor(server: http.Server | null = null) {
-        console.log("Attempting to start Chat God Manager")
-
-        const GodType = ChatGodManager.ChatGodClass;
-
+    createInitialGods() {
         this.chatGods = [
-            new GodType(this.getKeyword(1), this.emitChatGods),
-            new GodType(this.getKeyword(2), this.emitChatGods),
-            new GodType(this.getKeyword(3), this.emitChatGods),
+            this.createChatGod(this.getKeyword(1)),
+            this.createChatGod(this.getKeyword(2)),
+            this.createChatGod(this.getKeyword(3))
         ]
+    }
+
+    constructor(
+        server: http.Server | null = null,
+        managerContext: any | null = null
+    ) {
+        console.log("Attempting to start Chat God Manager")
+        this.managerContext = managerContext;
+        this.createInitialGods()
         this.twitchChatManager = new TwitchChatManager(this.processMessage.bind(this));
         this.initFrontendConnection(server);
+    }
+}
+export class DefaultChatGodManager extends ChatGodManager<ChatGod> {
+    protected createChatGod(keyword: string): ChatGod {
+        return new ChatGod(keyword, this.emitChatGods.bind(this));
     }
 }
