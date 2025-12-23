@@ -15,8 +15,6 @@ export function updateGodState(_target: any, _propertyKey: any, descriptor: Prop
 
     descriptor.value = function (this: ChatGodBase, ...args: any[]) {
         const result = original.apply(this, args);
-        console.log("Triggering onStateChange")
-        console.log("OnStateChange function:", this.onStateChange)
         this.onStateChange();
         return result;
     }
@@ -101,7 +99,6 @@ export class ChatGod extends ChatGodBase {
     // Useful for the upstream animations
     @updateGodState
     toggleSpeakingState(state: boolean) {
-        console.log(`We're updating the speaking state ${state}`)
         this.isSpeaking = state;
     }
 
@@ -123,10 +120,10 @@ export class ChatGod extends ChatGodBase {
             await this.ttsManager.emitMessage(
                 msg,
                 async () => {
-                    await new Promise(resolve => setTimeout(resolve, 500))
+                    //await new Promise(resolve => setTimeout(resolve, 500))
                     this.toggleSpeakingState(true)
                 },
-                () => this.toggleSpeakingState(false)
+                () => {this.toggleSpeakingState(false)}
             )
         }
     }
