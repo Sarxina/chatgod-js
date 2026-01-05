@@ -171,7 +171,7 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
     static ChatGodClass: typeof ChatGod = ChatGod;
     chatGods: GodType[] = [];
     keyword: string = "!joingod";
-    wsManager: WSManager;
+    wsManager: WSManager | null;
     twitchChatManager: TwitchChatManager;
 
     managerContext: any; // This is for deriviative games that use a chat god manager
@@ -197,7 +197,7 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
 
     // Updates the chat gods to the frontend
     emitChatGods () {
-        this.wsManager.emitChatGods(this.serializeChatGods());
+        this.wsManager!.emitChatGods(this.serializeChatGods());
     }
 
     @updateFromFrontend('get-chatgods')
@@ -208,12 +208,10 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
     // Add a new blank chatgod to the list
     @updateFromFrontend('new-chatgod')
     addChatGod = (data: any) => {
-        const newChatGod = new GodType(
-            this.getKeyword(this.chatGods.length + 1),
-            this.emitChatGods
+        const newChatGod = this.createChatGod(
+            this.getKeyword(this.chatGods.length + 1)
         );
         this.chatGods.push(newChatGod);
-
         this.emitChatGods();
     }
 
@@ -274,7 +272,7 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
         console.log(bindings)
         if (bindings) {
             for (const {wsSubject, methodName} of bindings) {
-                this.wsManager.registerFrontendListener(wsSubject, (this as any)[methodName].bind(this));
+                this.wsManager!.registerFrontendListener(wsSubject, (this as any)[methodName].bind(this));
             }
         }
     }
@@ -294,7 +292,7 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
         this.registerAllFrontendListeners(bindings);
     }
 
-    // Setup websockets and send the chat gods
+    // Setup websockets and send the chat gods if a server was provided
     initFrontendConnection (server: http.Server | null) {
         if (server) {
             this.setupWebsockets(server);
@@ -319,6 +317,7 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
         this.managerContext = managerContext;
         this.createInitialGods()
         this.twitchChatManager = new TwitchChatManager(this.processMessage.bind(this));
+        this.wsManager = null;
         this.initFrontendConnection(server);
     }
 }
