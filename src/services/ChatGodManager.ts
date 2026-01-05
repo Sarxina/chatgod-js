@@ -267,12 +267,16 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
 
     }
 
+    _registerFrontendListener(wsSubject: string, methodName: string) {
+        this.wsManager!.registerFrontendListener(wsSubject, (this as any)[methodName].bind(this));
+    }
+
     registerAllFrontendListeners = (bindings: any) => {
         // Register all of the subjects that communicate with the frontend
         console.log(bindings)
         if (bindings) {
             for (const {wsSubject, methodName} of bindings) {
-                this.wsManager!.registerFrontendListener(wsSubject, (this as any)[methodName].bind(this));
+                this._registerFrontendListener(wsSubject, methodName);
             }
         }
     }
@@ -311,7 +315,8 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
 
     constructor(
         server: http.Server | null = null,
-        managerContext: any | null = null
+        managerContext: any | null = null,
+
     ) {
         console.log("Attempting to start Chat God Manager")
         this.managerContext = managerContext;
