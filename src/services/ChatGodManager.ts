@@ -66,10 +66,15 @@ export class ChatGod extends ChatGodBase {
     ttsStyle: AzureStyle;
 
 
-    constructor(keyWord: string, onStateChange: () => void) {
+    constructor(
+        keyWord: string,
+        onStateChange: () => void,
+        isSpeaking: boolean = false,
+        latestMessage: string = "Added a new chat god",
+    ) {
         super(keyWord, onStateChange);
-        this.isSpeaking = false;
-        this.latestMessage = "Added a new chat god";
+        this.isSpeaking = isSpeaking
+        this.latestMessage = latestMessage;
 
         // TTS settings
         this.ttsManager = new TTSManager();
@@ -236,8 +241,7 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
 
     @updateFromFrontend('delete-chatgod')
     deleteChatGod = (data: any) => {
-        const idxToRemove = this.chatGods.findIndex(god => god.keyWord === data.keyWord);
-        this.chatGods.splice(idxToRemove, 1);
+        this.chatGods = this.chatGods.filter(chatGod => chatGod.keyWord != data.keyWord)
     }
 
     speakMessage(chatGod: GodType, message: string) {
