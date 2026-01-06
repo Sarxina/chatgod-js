@@ -27,12 +27,25 @@ class ChatGodBase {
     currentChatter: string;
     chatPool: string[] = [];
     protected onStateChange: () => void;
+    private intervalId: NodeJS.Timeout
 
-    constructor(keyWord:string, onStateChange: () => void) {
+    constructor(
+        keyWord:string,
+        onStateChange: () => void,
+        newChatterInterval: number = 5 // Time before a new chatter in minutes
+    ) {
         this.image = 'SkrunklyMouthClosed.png'
         this.keyWord = keyWord;
         this.currentChatter = "NoCurrentChatter";
         this.onStateChange = onStateChange;
+
+        this.intervalId = setInterval(() => {
+            this.duringInterval();
+        }, newChatterInterval * 60 * 1000)
+    }
+
+    // Handle when a new chatter is supposed to be chosen
+    duringInterval () {
     }
 
     // Perform before all speech
@@ -64,7 +77,6 @@ export class ChatGod extends ChatGodBase {
     // TTS Variables
     ttsVoice: AzureVoice
     ttsStyle: AzureStyle;
-
 
     constructor(
         keyWord: string,
@@ -147,6 +159,19 @@ export class ChatGod extends ChatGodBase {
 
     addChatterToPool = (chatter: string) => {
         this.chatPool.push(chatter);
+    }
+
+    // Handles the chat queue
+    duringInterval(): void {
+        // Add the current chatter to the back of the line
+        this.addChatterToPool(this.currentChatter);
+        const newChatter = this.chatPool.pop()!;
+
+        if (newChatter != this.currentChatter) {
+            // Do something on a new chatter (I don't think it should say anything for now)
+        }
+        this.currentChatter = newChatter;
+        this.onStateChange();
     }
 
     // Speech process goes below here
