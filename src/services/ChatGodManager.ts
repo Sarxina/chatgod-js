@@ -27,6 +27,8 @@ class ChatGodBase {
     currentChatter: string;
     chatPool: string[] = [];
     protected onStateChange: () => void;
+    onChatterChange?: (newChatter: string) => void;
+    onQueueJoin?: (chatter: string) => void;
     private intervalId: NodeJS.Timeout
 
     constructor(
@@ -160,16 +162,18 @@ export class ChatGod extends ChatGodBase {
 
     addChatterToPool = (chatter: string) => {
         this.chatPool.push(chatter);
+        this.onQueueJoin?.(chatter);
     }
 
     // Handles the chat queue
     duringInterval(): void {
         if (this.chatPool.length === 0) return;
 
-        // Move current chatter to the back of the queue
-        this.addChatterToPool(this.currentChatter);
+        // Move current chatter to the back of the queue (silent, no join notification)
+        this.chatPool.push(this.currentChatter);
         // Take next chatter from the front
         this.currentChatter = this.chatPool.shift()!;
+        this.onChatterChange?.(this.currentChatter);
         this.onStateChange();
     }
 

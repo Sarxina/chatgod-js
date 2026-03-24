@@ -28,4 +28,8 @@ export class TwitchChatManager {
         this.chatClient.connect();
         console.log("Connected to Twitch Chat")
     }
+
+    say = async (message: string) => {
+        await this.chatClient.say(process.env.TWITCH_CHANNEL_NAME!, message);
+    }
 }
