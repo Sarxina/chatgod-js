@@ -1,8 +1,9 @@
 import * as speechsdk from 'microsoft-cognitiveservices-speech-sdk';
 import Speaker from 'speaker';
 import { PassThrough } from 'stream';
-import { AZURE_VOICE_STYLES, AZURE_VOICES, AzureStyle, AzureVoice } from '../common/types';
+import { AzureStyle, AzureVoice } from '../common/types';
 import { start } from 'repl';
+import { randomVoiceStyle } from '../common/util';
 
 export class TTSManager {
     voice: AzureVoice;
@@ -14,10 +15,9 @@ export class TTSManager {
     constructor() {
         this.authenticate();
         // Choose random voice and style to start
-        const voiceChoise = Math.floor(Math.random() * AZURE_VOICES.length)
-        const styleChoice = Math.floor(Math.random() * AZURE_VOICE_STYLES.length)
-        this.voice = AZURE_VOICES[voiceChoise] || 'en-US-AriaNeural';
-        this.style = AZURE_VOICE_STYLES[styleChoice] || 'cheerful';
+        const [randomVoice, randomStyle] = randomVoiceStyle();
+        this.voice = randomVoice || 'en-US-AriaNeural';
+        this.style = randomStyle || 'cheerful';
     }
 
     // Authenticates the app through Azure
