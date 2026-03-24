@@ -3,6 +3,7 @@ export interface ChatGodProps {
     latestMessage: string;
     keyWord: string;
     currentChatter: string;
+    queueSize: number;
     ttsVoice: AzureVoice;
     ttsStyle: AzureStyle;
     isSpeaking: boolean;

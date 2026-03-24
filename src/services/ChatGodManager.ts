@@ -32,7 +32,7 @@ class ChatGodBase {
     constructor(
         keyWord:string,
         onStateChange: () => void,
-        newChatterInterval: number = 5 // Time before a new chatter in minutes
+        newChatterInterval: number = 10 // Time before a new chatter in minutes
     ) {
         this.image = 'SkrunklyMouthClosed.png'
         this.keyWord = keyWord;
@@ -100,6 +100,7 @@ export class ChatGod extends ChatGodBase {
             image: this.image,
             keyWord: this.keyWord,
             currentChatter: this.currentChatter,
+            queueSize: this.chatPool.length,
             latestMessage: this.latestMessage,
             ttsVoice: this.ttsVoice,
             ttsStyle: this.ttsStyle,
@@ -154,7 +155,7 @@ export class ChatGod extends ChatGodBase {
             console.warn("Chat pool is empty, staying with current chatter");
             return this.currentChatter;
         }
-        return this.chatPool.pop() || this.currentChatter;
+        return this.chatPool.shift() || this.currentChatter;
     }
 
     addChatterToPool = (chatter: string) => {
@@ -163,14 +164,12 @@ export class ChatGod extends ChatGodBase {
 
     // Handles the chat queue
     duringInterval(): void {
-        // Add the current chatter to the back of the line
-        this.addChatterToPool(this.currentChatter);
-        const newChatter = this.chatPool.pop()!;
+        if (this.chatPool.length === 0) return;
 
-        if (newChatter != this.currentChatter) {
-            // Do something on a new chatter (I don't think it should say anything for now)
-        }
-        this.currentChatter = newChatter;
+        // Move current chatter to the back of the queue
+        this.addChatterToPool(this.currentChatter);
+        // Take next chatter from the front
+        this.currentChatter = this.chatPool.shift()!;
         this.onStateChange();
     }
 
@@ -267,6 +266,12 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
     @updateFromFrontend('delete-chatgod')
     deleteChatGod = (data: any) => {
         this.chatGods = this.chatGods.filter(chatGod => chatGod.keyWord != data.keyWord)
+    }
+
+    @updateFromFrontend('advance-queue')
+    advanceQueue = (data: any) => {
+        const chatGod = this.getChatGodByKeyword(data.keyWord);
+        chatGod?.duringInterval();
     }
 
     speakMessage(chatGod: GodType, message: string) {
