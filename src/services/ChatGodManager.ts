@@ -177,6 +177,15 @@ export class ChatGod extends ChatGodBase {
         this.onStateChange();
     }
 
+    // Advance queue without re-adding current chatter (removes them)
+    removeCurrentChatter(): void {
+        if (this.chatPool.length === 0) return;
+
+        this.currentChatter = this.chatPool.shift()!;
+        this.onChatterChange?.(this.currentChatter);
+        this.onStateChange();
+    }
+
     // Speech process goes below here
     beforeSpeech = async (msg: string) => {
         this.setLatestMessage(msg);
@@ -276,6 +285,12 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
     advanceQueue = (data: any) => {
         const chatGod = this.getChatGodByKeyword(data.keyWord);
         chatGod?.duringInterval();
+    }
+
+    @updateFromFrontend('remove-from-queue')
+    removeFromQueue = (data: any) => {
+        const chatGod = this.getChatGodByKeyword(data.keyWord);
+        chatGod?.removeCurrentChatter();
     }
 
     speakMessage(chatGod: GodType, message: string) {
