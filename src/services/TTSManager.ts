@@ -8,12 +8,13 @@ import { randomVoiceStyle } from '../common/util';
 export class TTSManager {
     voice: AzureVoice;
     style: AzureStyle;
+    enabled: boolean;
 
     private speechConfig!: speechsdk.SpeechConfig;
     private synthesizer!: speechsdk.SpeechSynthesizer;
 
     constructor() {
-        this.authenticate();
+        this.enabled = this.authenticate();
         // Choose random voice and style to start
         const [randomVoice, randomStyle] = randomVoiceStyle();
         this.voice = randomVoice || 'en-US-AriaNeural';
@@ -21,15 +22,17 @@ export class TTSManager {
     }
 
     // Authenticates the app through Azure
-    authenticate = () => {
+    authenticate = (): boolean => {
         if (!process.env.AZURE_TTS_KEY || !process.env.AZURE_TTS_REGION) {
-            throw new Error("Azure TTS key or region not set in environment variables");
+            console.warn("Azure TTS key or region not set — TTS disabled");
+            return false;
         }
         this.speechConfig = speechsdk.SpeechConfig.fromSubscription(
             process.env.AZURE_TTS_KEY!,
             process.env.AZURE_TTS_REGION!
         )
         this.synthesizer = new speechsdk.SpeechSynthesizer(this.speechConfig);
+        return true;
     }
 
     getSSMLText = (msg: string): string => {
@@ -98,6 +101,8 @@ export class TTSManager {
         onAudioReady?: () => void,
         onAudioComplete?: () => void
     ): Promise<void> => {
+        if (!this.enabled) return;
+
         const ssmlText = this.getSSMLText(msg);
         const audioData = await this.getAudioData(ssmlText);
         if (!audioData) {
