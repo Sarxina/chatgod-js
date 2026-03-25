@@ -161,8 +161,14 @@ export class ChatGod extends ChatGodBase {
     }
 
     addChatterToPool = (chatter: string) => {
-        this.chatPool.push(chatter);
-        this.onQueueJoin?.(chatter);
+        if (this.currentChatter === "NoCurrentChatter") {
+            this.currentChatter = chatter;
+            this.onChatterChange?.(chatter);
+            this.onStateChange();
+        } else {
+            this.chatPool.push(chatter);
+            this.onQueueJoin?.(chatter);
+        }
     }
 
     // Handles the chat queue
@@ -179,7 +185,12 @@ export class ChatGod extends ChatGodBase {
 
     // Advance queue without re-adding current chatter (removes them)
     removeCurrentChatter(): void {
-        if (this.chatPool.length === 0) return;
+        if (this.chatPool.length === 0) {
+            this.currentChatter = "NoCurrentChatter";
+            this.onChatterChange?.(this.currentChatter);
+            this.onStateChange();
+            return;
+        }
 
         this.currentChatter = this.chatPool.shift()!;
         this.onChatterChange?.(this.currentChatter);
