@@ -29,6 +29,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Install ALSA dev headers (for speaker native build)
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
       - name: Install dependencies
         run: npm install
 
