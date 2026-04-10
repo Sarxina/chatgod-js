@@ -2,7 +2,7 @@
 
 import type { AzureStyle, AzureVoice, ChatGodProps } from "../common/types";
 import { TTSManager } from "./TTSManager";
-import { TwitchChatManager } from "./TwitchChatManager";
+import { TwitchChatManager } from "@sarxina/sarxina-tools";
 import { WSManager } from "./WSManager";
 import http from "http";
 
