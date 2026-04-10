@@ -1,8 +1,7 @@
 {
-  "name": "chatgod",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "@sarxina/chatgod-js",
+  "version": "0.1.0",
+  "description": "Twitch chat + redeem manager with TTS, OBS control, and a React frontend",
   "scripts": {
     "install-all": "npm install --verbose && cd src/client && npm install --verbose && cd ../..",
     "dev-client": "cd src/client && npm run build -- --watch",
