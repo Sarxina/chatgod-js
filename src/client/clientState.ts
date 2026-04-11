@@ -49,7 +49,9 @@ export const useChatGods = (): [ChatGodProps[], (keyWord: string, field: string,
     const [socket, setSocket] = useState<Socket | null>(null);
 
     useEffect(() => {
-        const newSocket = io(`http://localhost:3333`);
+        // Connect to the same origin that served this page — works regardless
+        // of which port the backend is running on.
+        const newSocket = io(window.location.origin);
         setSocket(newSocket);
 
         return () => {
