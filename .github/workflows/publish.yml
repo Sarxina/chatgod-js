@@ -36,7 +36,11 @@ jobs:
         run: npm install
 
       - name: Build
-        run: npm run build
+        # Only build the server side. The React client lives in src/client/ and
+        # is built separately for standalone dev use; it's not part of the
+        # published npm tarball (files: ["dist"] only includes dist/ which is
+        # the server output).
+        run: npm run build:server
 
       - name: Bump patch version
         run: |
