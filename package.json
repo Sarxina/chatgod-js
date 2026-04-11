@@ -41,7 +41,7 @@
   },
   "homepage": "https://github.com/Sarxina/chatgod-js#readme",
   "dependencies": {
-    "@sarxina/sarxina-tools": "^0.1.3",
+    "@sarxina/sarxina-tools": "^0.1.5",
     "@twurple/auth": "^7.4.0",
     "@twurple/chat": "^7.4.0",
     "dotenv": "^17.2.3",

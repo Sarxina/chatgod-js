@@ -255,7 +255,8 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
         console.log("Attempting to start Chat God Manager");
         this.managerContext = managerContext;
         this.createInitialGods();
-        this.twitchChatManager = new TwitchChatManager(this.processMessage.bind(this));
+        this.twitchChatManager = new TwitchChatManager();
+        this.twitchChatManager.registerNewChatCallback(this.processMessage.bind(this));
 
         // Defer until after construction completes so that the @updateFromFrontend
         // method decorator initializers have populated this.__frontendBindings.
