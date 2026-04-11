@@ -1,9 +1,8 @@
-import * as speechsdk from 'microsoft-cognitiveservices-speech-sdk';
-import Speaker from 'speaker';
-import { PassThrough } from 'stream';
-import { AzureStyle, AzureVoice } from '../common/types';
-import { start } from 'repl';
-import { randomVoiceStyle } from '../common/util';
+import * as speechsdk from "microsoft-cognitiveservices-speech-sdk";
+import Speaker from "speaker";
+import { PassThrough } from "stream";
+import type { AzureStyle, AzureVoice } from "../common/types.js";
+import { randomVoiceStyle } from "../common/util.js";
 
 export class TTSManager {
     voice: AzureVoice;
@@ -17,26 +16,25 @@ export class TTSManager {
         this.enabled = this.authenticate();
         // Choose random voice and style to start
         const [randomVoice, randomStyle] = randomVoiceStyle();
-        this.voice = randomVoice || 'en-US-AriaNeural';
-        this.style = randomStyle || 'cheerful';
+        this.voice = randomVoice || "en-US-AriaNeural";
+        this.style = randomStyle || "cheerful";
     }
 
     // Authenticates the app through Azure
     authenticate = (): boolean => {
-        if (!process.env.AZURE_TTS_KEY || !process.env.AZURE_TTS_REGION) {
+        if (!process.env["AZURE_TTS_KEY"] || !process.env["AZURE_TTS_REGION"]) {
             console.warn("Azure TTS key or region not set — TTS disabled");
             return false;
         }
         this.speechConfig = speechsdk.SpeechConfig.fromSubscription(
-            process.env.AZURE_TTS_KEY!,
-            process.env.AZURE_TTS_REGION!
-        )
+            process.env["AZURE_TTS_KEY"]!,
+            process.env["AZURE_TTS_REGION"]!
+        );
         this.synthesizer = new speechsdk.SpeechSynthesizer(this.speechConfig);
         return true;
-    }
+    };
 
     getSSMLText = (msg: string): string => {
-
         const xmlns = "http://www.w3.org/2001/10/synthesis";
         const mstts = "http://www.w3.org/2001/mstts";
         const emo = "http://www.w3.org/2009/10/emotionml";
@@ -55,44 +53,49 @@ export class TTSManager {
         </speak>`;
 
         return ssml_text;
-    }
+    };
 
     // Given an audio data stream, play it through speaker
-    playAudioData = async (audioData: PassThrough) : Promise<void> => {
-        return new Promise((resolve, reject) =>  {
+    playAudioData = async (audioData: PassThrough): Promise<void> => {
+        return new Promise((resolve, reject) => {
             const speaker = new Speaker({
                 channels: 1,
                 bitDepth: 16,
-                sampleRate: 16000
+                sampleRate: 16000,
             });
 
-            speaker.on('close', () => {resolve();})
-            speaker.on('error', (error) => {reject(error);})
+            speaker.on("close", () => {
+                resolve();
+            });
+            speaker.on("error", (error: Error) => {
+                reject(error);
+            });
 
             // Play the stream
             audioData.pipe(speaker);
-        })
-    }
+        });
+    };
+
     // Attempt to synethsize the speech and return the audio data
     getAudioData = (ssmlText: string): Promise<PassThrough | null> => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this.synthesizer.speakSsmlAsync(
                 ssmlText,
-                result => {
+                (result) => {
                     const { audioData } = result;
 
-                    // since we're doing in server, consert to stream
+                    // since we're doing in server, convert to stream
                     const bufferStream = new PassThrough();
                     bufferStream.end(Buffer.from(audioData));
-                    resolve(bufferStream)
+                    resolve(bufferStream);
                 },
-                error => {
+                (error) => {
                     console.error("Error synthesizing speech:", error);
                     resolve(null);
                 }
-            )
-        })
-    }
+            );
+        });
+    };
 
     // Given a message string, speak it
     // Takes an optional callback to run when audio is ready and when its done
@@ -116,13 +119,13 @@ export class TTSManager {
 
         // Audio is complete, trigger callback
         onAudioComplete?.();
-    }
+    };
 
-    setVoice = (voice: AzureVoice) => {
+    setVoice = (voice: AzureVoice): void => {
         this.voice = voice;
-    }
+    };
 
-    setStyle = (style: AzureStyle) => {
+    setStyle = (style: AzureStyle): void => {
         this.style = style;
-    }
+    };
 }

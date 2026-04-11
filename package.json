@@ -2,8 +2,15 @@
   "name": "@sarxina/chatgod-js",
   "version": "0.1.2",
   "description": "Twitch chat + redeem manager with TTS, OBS control, and a React frontend",
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "files": [
     "dist"
   ],
@@ -11,12 +18,16 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "clean": "rm -rf dist",
-    "install-all": "npm install --verbose && cd src/client && npm install --verbose && cd ../..",
-    "dev-client": "cd src/client && npm run build -- --watch",
-    "dev-server": "nodemon --exec ts-node src/server.ts",
-    "dev": "npm run install-all && concurrently \"npm run dev-client\" \"npm run dev-server\""
+    "predev": "node scripts/setup.mjs",
+    "dev": "concurrently -k -n client,server -c blue,green \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "cd src/client && npm run build -- --watch",
+    "dev:server": "tsx watch src/server.ts",
+    "prebuild": "npm run build:client",
+    "build": "npm run build:server",
+    "build:client": "cd src/client && npm run build",
+    "build:server": "tsc",
+    "start": "node dist/server.js",
+    "clean": "rm -rf dist src/client/dist"
   },
   "repository": {
     "type": "git",
@@ -50,8 +61,7 @@
     "@types/react-dom": "^19.2.2",
     "@types/socket.io": "^3.0.1",
     "concurrently": "^9.2.1",
-    "nodemon": "^3.1.10",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.20.0",
     "typescript": "^5.9.3"
   }
 }
