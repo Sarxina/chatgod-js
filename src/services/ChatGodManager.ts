@@ -2,7 +2,7 @@
 
 import type { AzureStyle, AzureVoice, ChatGodProps } from "../common/types.js";
 import { TTSManager } from "./TTSManager.js";
-import { TwitchChatManager } from "@sarxina/sarxina-tools";
+import { TwitchManager } from "@sarxina/sarxina-tools";
 import { WSManager } from "./WSManager.js";
 import type http from "http";
 
@@ -240,7 +240,7 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
     chatGods: GodType[] = [];
     keyword: string = "!joingod";
     wsManager: WSManager | null = null;
-    twitchChatManager: TwitchChatManager;
+    twitchManager: TwitchManager;
 
     managerContext: unknown; // This is for derivative games that use a chat god manager
 
@@ -255,8 +255,8 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
         console.log("Attempting to start Chat God Manager");
         this.managerContext = managerContext;
         this.createInitialGods();
-        this.twitchChatManager = new TwitchChatManager();
-        this.twitchChatManager.registerNewChatCallback(this.processMessage.bind(this));
+        this.twitchManager = new TwitchManager();
+        this.twitchManager.onChat(({ user, message }) => this.processMessage(message, user));
 
         // Defer until after construction completes so that the @updateFromFrontend
         // method decorator initializers have populated this.__frontendBindings.
