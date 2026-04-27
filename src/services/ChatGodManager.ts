@@ -2,7 +2,13 @@
 
 import type { AzureStyle, AzureVoice, ChatGodProps } from "../common/types.js";
 import { TTSManager } from "./TTSManager.js";
-import { TwitchManager } from "@sarxina/sarxina-tools";
+import {
+    Action,
+    ActionRegistry,
+    TwitchManager,
+    type TriggerFiring,
+    type TwitchChatTriggerInput,
+} from "@sarxina/sarxina-tools";
 import { WSManager } from "./WSManager.js";
 import type http from "http";
 
@@ -241,6 +247,7 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
     keyword: string = "!joingod";
     wsManager: WSManager | null = null;
     twitchManager: TwitchManager;
+    actionRegistry: ActionRegistry;
 
     managerContext: unknown; // This is for derivative games that use a chat god manager
 
@@ -254,15 +261,55 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
     constructor(server: http.Server | null = null, managerContext: unknown = null) {
         console.log("Attempting to start Chat God Manager");
         this.managerContext = managerContext;
-        this.createInitialGods();
+
+        // Set up the platform manager + action layer BEFORE creating gods so
+        // createInitialGods overrides can register Actions for them as they go.
         this.twitchManager = new TwitchManager();
-        this.twitchManager.onChat(({ user, message }) => this.processMessage(message, user));
+        this.actionRegistry = new ActionRegistry([this.twitchManager]);
+
+        this.createInitialGods();
+        for (const god of this.chatGods) {
+            this.registerJoinAction(god);
+        }
+
+        // Stateful "current chatter speaks → TTS" path stays as a direct
+        // listener — Actions are predicate-based and don't fit stateful
+        // routing. The keyword gate prevents speaking join commands aloud.
+        this.twitchManager.onChat(({ user, message }) => {
+            if (this.isJoinKeyword(message)) return;
+            const chattingGod = this.getChatGodByChatter(user);
+            if (chattingGod) this.speakMessage(chattingGod, message);
+        });
 
         // Defer until after construction completes so that the @updateFromFrontend
         // method decorator initializers have populated this.__frontendBindings.
         // Stage-3 decorator initializers run after the constructor body of the
         // class that owns them, so we can't read them synchronously here.
         queueMicrotask(() => this.initFrontendConnection(server));
+    }
+
+    // Register an Action that joins the chatter to this god's pool when their
+    // message starts with the god's full keyword as a whole word (so
+    // "!joingod1" matches but "!joingod10" does not).
+    private registerJoinAction(god: GodType): void {
+        const action = new Action(
+            `chatgod-join-${god.keyWord}`,
+            [{
+                source: { platform: "twitch", kind: "chat" },
+                filters: [{ field: "message", op: "startsWithWord", value: god.keyWord }],
+            }],
+            [(firing: TriggerFiring) => {
+                const { user } = firing.input as TwitchChatTriggerInput;
+                god.addChatterToPool(user);
+                console.log(`${user} added to ${god.keyWord} pool`);
+            }],
+        );
+        this.actionRegistry.register(action);
+    }
+
+    private isJoinKeyword(message: string): boolean {
+        const firstWord = message.split(" ")[0];
+        return firstWord !== undefined && firstWord.startsWith(this.keyword);
     }
 
     // Creates a keyword based on index
@@ -297,6 +344,7 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
     addChatGod(_data: unknown): void {
         const newChatGod = this.createChatGod(this.getKeyword(this.chatGods.length + 1));
         this.chatGods.push(newChatGod);
+        this.registerJoinAction(newChatGod);
         this.emitChatGods();
     }
 
@@ -321,6 +369,7 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
     @updateFromFrontend("delete-chatgod")
     deleteChatGod(data: { keyWord: string }): void {
         this.chatGods = this.chatGods.filter((chatGod) => chatGod.keyWord !== data.keyWord);
+        this.actionRegistry.unregister(`chatgod-join-${data.keyWord}`);
     }
 
     @updateFromFrontend("advance-queue")
@@ -337,26 +386,6 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
 
     speakMessage(chatGod: GodType, message: string): void {
         chatGod.speak(message);
-    }
-
-    // Processes an incoming message
-    processMessage(message: string, chatter: string): void {
-        // First, see if the message is attempting to join a ChatGod
-        const words = message.split(" ");
-        // See if the message starts with the keyword
-        // If so, we have an attempt to join
-        if (words[0]!.startsWith(this.keyword)) {
-            const chatGod = this.getChatGodByKeyword(words[0]!);
-            if (chatGod) {
-                chatGod.addChatterToPool(chatter);
-                console.log(`${chatter} added to ${chatGod.keyWord} pool`);
-            }
-            return;
-        }
-
-        // Attempt to send a current chatter
-        const chattingGod = this.getChatGodByChatter(chatter);
-        if (chattingGod) this.speakMessage(chattingGod, message);
     }
 
     _registerFrontendListener(wsSubject: string, methodName: string): void {
