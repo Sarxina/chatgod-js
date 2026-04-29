@@ -258,13 +258,23 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
 
     protected abstract createChatGod(keyword: string): GodType;
 
-    constructor(server: http.Server | null = null, managerContext: unknown = null) {
+    /**
+     * @param twitchManager - Optional injected platform manager. Tests pass a
+     *   real `TwitchManager` constructed with `{ autoConnect: false }` (or a
+     *   compatible fake) so they don't dial Twitch. Production callers omit
+     *   this and a default `TwitchManager` is constructed.
+     */
+    constructor(
+        server: http.Server | null = null,
+        managerContext: unknown = null,
+        twitchManager?: TwitchManager,
+    ) {
         console.log("Attempting to start Chat God Manager");
         this.managerContext = managerContext;
 
         // Set up the platform manager + action layer BEFORE creating gods so
         // createInitialGods overrides can register Actions for them as they go.
-        this.twitchManager = new TwitchManager();
+        this.twitchManager = twitchManager ?? new TwitchManager();
         this.actionRegistry = new ActionRegistry([this.twitchManager]);
 
         this.createInitialGods();

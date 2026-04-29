@@ -35,6 +35,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Run tests
+        # Tests must pass for a publish to proceed. They cover the ChatGod
+        # state machine and ChatGodManager's Action-layer integration.
+        run: npm test
+
       - name: Build
         # Only build the server side. The React client lives in src/client/ and
         # is built separately for standalone dev use; it's not part of the

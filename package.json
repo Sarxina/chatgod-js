@@ -27,7 +27,8 @@
     "build:client": "cd src/client && npm run build",
     "build:server": "tsc",
     "start": "node dist/server.js",
-    "clean": "rm -rf dist src/client/dist"
+    "clean": "rm -rf dist src/client/dist",
+    "test": "vitest run"
   },
   "repository": {
     "type": "git",
@@ -41,7 +42,7 @@
   },
   "homepage": "https://github.com/Sarxina/chatgod-js#readme",
   "dependencies": {
-    "@sarxina/sarxina-tools": "^0.2.5",
+    "@sarxina/sarxina-tools": "^0.2.6",
     "@twurple/auth": "^7.4.0",
     "@twurple/chat": "^7.4.0",
     "dotenv": "^17.2.3",
@@ -55,6 +56,7 @@
     "speaker": "^0.5.5"
   },
   "devDependencies": {
+    "@swc/core": "^1.15.32",
     "@types/express": "^5.0.4",
     "@types/node": "^24.9.1",
     "@types/react": "^19.2.2",
@@ -62,6 +64,8 @@
     "@types/socket.io": "^3.0.1",
     "concurrently": "^9.2.1",
     "tsx": "^4.20.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "unplugin-swc": "^1.5.9",
+    "vitest": "^4.1.5"
   }
 }
