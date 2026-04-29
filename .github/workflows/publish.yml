@@ -1,67 +1,18 @@
-name: Publish to npm
+name: Release
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
+  release:
+    uses: Sarxina/sarxina-tools/.github/workflows/release.yml@main
     permissions:
-      contents: write
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-
-      - name: Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Install ALSA dev headers (for speaker native build)
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run tests
-        # Tests must pass for a publish to proceed. They cover the ChatGod
-        # state machine and ChatGodManager's Action-layer integration.
-        run: npm test
-
-      - name: Build
-        # Only build the server side. The React client lives in src/client/ and
-        # is built separately for standalone dev use; it's not part of the
-        # published npm tarball (files: ["dist"] only includes dist/ which is
-        # the server output).
-        run: npm run build:server
-
-      - name: Bump patch version
-        run: |
-          npm version patch --no-git-tag-version
-          NEW_VERSION=$(node -p "require('./package.json').version")
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-
-      - name: Commit version bump
-        run: |
-          git add package.json package-lock.json
-          git commit -m "chore: release v${{ env.NEW_VERSION }} [skip ci]"
-          git tag "v${{ env.NEW_VERSION }}"
-          git push
-          git push --tags
-
-      - name: Publish to npm
-        run: npm publish --access public --provenance
-        env:
-          NPM_CONFIG_PROVENANCE: "true"
+      contents: write   # for pushing the tag
+      id-token: write   # for npm provenance via OIDC
+    with:
+      npm_publish: true
+      apt_packages: libasound2-dev   # speaker native module
+      build_command: npm run build:server
+      test_command: npm test
+    secrets: inherit
