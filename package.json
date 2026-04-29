@@ -1,6 +1,6 @@
 {
   "name": "@sarxina/chatgod-js",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Twitch chat + redeem manager with TTS, OBS control, and a React frontend",
   "type": "module",
   "main": "./dist/index.js",
