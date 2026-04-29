@@ -272,13 +272,13 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
             this.registerJoinAction(god);
         }
 
-        // Stateful "current chatter speaks → TTS" path stays as a direct
-        // listener — Actions are predicate-based and don't fit stateful
-        // routing. The keyword gate prevents speaking join commands aloud.
+        // Stateful "current chatter speaks → TTS" routing happens via
+        // `processMessage`, the subclass extension point. The keyword gate
+        // here prevents downstream `processMessage` overrides from
+        // double-handling join commands the Action layer already routed.
         this.twitchManager.onChat(({ user, message }) => {
             if (this.isJoinKeyword(message)) return;
-            const chattingGod = this.getChatGodByChatter(user);
-            if (chattingGod) this.speakMessage(chattingGod, message);
+            this.processMessage(message, user);
         });
 
         // Defer until after construction completes so that the @updateFromFrontend
@@ -386,6 +386,17 @@ export abstract class ChatGodManager<GodType extends ChatGod> {
 
     speakMessage(chatGod: GodType, message: string): void {
         chatGod.speak(message);
+    }
+
+    // Subclass extension point. Called by the inline `onChat` handler for
+    // every chat message that ISN'T a join keyword (those are handled by
+    // per-god Actions registered in `registerJoinAction`). Default behavior:
+    // route to the message's current chatting god for TTS. Subclasses can
+    // override to add their own chat reactions and call `super.processMessage`
+    // to keep the default routing.
+    processMessage(message: string, chatter: string): void {
+        const chattingGod = this.getChatGodByChatter(chatter);
+        if (chattingGod) this.speakMessage(chattingGod, message);
     }
 
     _registerFrontendListener(wsSubject: string, methodName: string): void {
